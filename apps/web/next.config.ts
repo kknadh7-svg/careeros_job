@@ -16,9 +16,8 @@ const nextConfig: NextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
+  // Next.js 16: Turbopack is default — acknowledge webpack coexistence
+  turbopack: {},
 
   images: {
     remotePatterns: [
@@ -47,10 +46,6 @@ const nextConfig: NextConfig = {
         permanent: true,
       },
     ];
-  },
-
-  experimental: {
-    ppr: false,
   },
 
   serverExternalPackages: ["pino", "pino-pretty", "bullmq", "mammoth", "pdf-parse"],
