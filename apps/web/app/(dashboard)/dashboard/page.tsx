@@ -88,12 +88,16 @@ export default async function DashboardPage() {
   const { userId: clerkId } = await auth();
   if (!clerkId) return null;
 
-  const currentUser = await getOrCreateUser();
-  if (!currentUser) return null;
-
-  let data;
+  let currentUser = null;
   try {
-    data = await getDashboardData(clerkId);
+    currentUser = await getOrCreateUser();
+  } catch {
+    // DB tables may not be migrated yet
+  }
+
+  let data = null;
+  try {
+    if (clerkId) data = await getDashboardData(clerkId);
   } catch {
     data = null;
   }
