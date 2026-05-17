@@ -1,0 +1,114 @@
+{
+  "name": "CareerOS — Application Status Notification",
+  "nodes": [
+    {
+      "parameters": {
+        "path": "application-status-changed",
+        "httpMethod": "POST",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "id": "webhook-trigger",
+      "name": "Application Status Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 300],
+      "webhookId": "application-status-changed"
+    },
+    {
+      "parameters": {
+        "operation": "select",
+        "query": "SELECT u.email, u.first_name, j.title as job_title, j.company FROM applications a JOIN users u ON a.user_id = u.id JOIN jobs j ON a.job_id = j.id WHERE a.id = '{{ $json.applicationId }}'",
+        "options": {}
+      },
+      "id": "get-context",
+      "name": "Get Application Context",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "dataType": "string",
+        "value1": "={{ $('Application Status Webhook').item.json.newStatus }}",
+        "rules": {
+          "rules": [
+            { "value2": "INTERVIEW", "output": 0 },
+            { "value2": "OFFER", "output": 1 },
+            { "value2": "REJECTED", "output": 2 },
+            { "value2": "SCREENING", "output": 3 }
+          ]
+        },
+        "fallbackOutput": "none"
+      },
+      "id": "status-switch",
+      "name": "Switch on Status",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3,
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "fromEmail": "notifications@careeros.app",
+        "toEmail": "={{ $('Get Application Context').item.json.email }}",
+        "subject": "🎉 Interview Invitation — {{ $('Get Application Context').item.json.company }}",
+        "emailType": "html",
+        "html": "<!DOCTYPE html><html><body style='font-family: sans-serif; background: #0a0a0a; color: #fff; padding: 40px;'><h1 style='color: #6366f1;'>Congratulations! 🎉</h1><p>Hi {{ $('Get Application Context').item.json.first_name }},</p><p>You've been invited to interview for <strong>{{ $('Get Application Context').item.json.job_title }}</strong> at <strong>{{ $('Get Application Context').item.json.company }}</strong>.</p><p>Use CareerOS to practice your interview with AI coaching.</p><a href='https://careeros.app/interviews' style='background: #6366f1; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px;'>Practice Now →</a></body></html>"
+      },
+      "id": "interview-email",
+      "name": "Send Interview Email",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [900, 160]
+    },
+    {
+      "parameters": {
+        "fromEmail": "notifications@careeros.app",
+        "toEmail": "={{ $('Get Application Context').item.json.email }}",
+        "subject": "🚀 You received an offer — {{ $('Get Application Context').item.json.company }}!",
+        "emailType": "html",
+        "html": "<!DOCTYPE html><html><body style='font-family: sans-serif; background: #0a0a0a; color: #fff; padding: 40px;'><h1 style='color: #22c55e;'>You Got an Offer! 🚀</h1><p>Hi {{ $('Get Application Context').item.json.first_name }},</p><p><strong>{{ $('Get Application Context').item.json.company }}</strong> has extended you an offer for <strong>{{ $('Get Application Context').item.json.job_title }}</strong>.</p><a href='https://careeros.app/applications' style='background: #22c55e; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px;'>View Offer →</a></body></html>"
+      },
+      "id": "offer-email",
+      "name": "Send Offer Email",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [900, 300]
+    },
+    {
+      "parameters": {
+        "fromEmail": "notifications@careeros.app",
+        "toEmail": "={{ $('Get Application Context').item.json.email }}",
+        "subject": "Application Update — {{ $('Get Application Context').item.json.company }}",
+        "emailType": "html",
+        "html": "<!DOCTYPE html><html><body style='font-family: sans-serif; background: #0a0a0a; color: #fff; padding: 40px;'><h2>Application Update</h2><p>Your application for <strong>{{ $('Get Application Context').item.json.job_title }}</strong> at {{ $('Get Application Context').item.json.company }} has been updated.</p><a href='https://careeros.app/applications' style='background: #6366f1; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px;'>View Application →</a></body></html>"
+      },
+      "id": "generic-email",
+      "name": "Send Generic Update Email",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [900, 440]
+    }
+  ],
+  "connections": {
+    "Application Status Webhook": {
+      "main": [
+        [{ "node": "Get Application Context", "type": "main", "index": 0 }]
+      ]
+    },
+    "Get Application Context": {
+      "main": [
+        [{ "node": "Switch on Status", "type": "main", "index": 0 }]
+      ]
+    },
+    "Switch on Status": {
+      "main": [
+        [{ "node": "Send Interview Email", "type": "main", "index": 0 }],
+        [{ "node": "Send Offer Email", "type": "main", "index": 0 }],
+        [{ "node": "Send Generic Update Email", "type": "main", "index": 0 }],
+        [{ "node": "Send Generic Update Email", "type": "main", "index": 0 }]
+      ]
+    }
+  },
+  "tags": ["careeros", "notifications", "applications"]
+}

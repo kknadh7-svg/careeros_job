@@ -1,0 +1,151 @@
+{
+  "name": "CareerOS — Daily Job Discovery",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 6 * * *"
+            }
+          ]
+        }
+      },
+      "id": "schedule-trigger",
+      "name": "Schedule Trigger (6am UTC)",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "operation": "select",
+        "query": "SELECT id FROM users WHERE deleted_at IS NULL AND onboarding_complete = true ORDER BY created_at ASC",
+        "options": {}
+      },
+      "id": "fetch-active-users",
+      "name": "Fetch Active Users",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [460, 300],
+      "credentials": {
+        "postgres": {
+          "id": "careeros-postgres",
+          "name": "CareerOS Postgres"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "batchSize": 10,
+        "options": {}
+      },
+      "id": "batch-users",
+      "name": "Process in Batches of 10",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.AGENTS_API_URL }}/v1/agents/daily-discovery",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer {{ $env.AGENTS_API_SECRET }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "userId",
+              "value": "={{ $json.id }}"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 120000
+        }
+      },
+      "id": "trigger-agent",
+      "name": "Trigger Daily Discovery Agent",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [900, 300]
+    },
+    {
+      "parameters": {
+        "operation": "insert",
+        "table": "workflow_runs",
+        "columns": "workflow,status,user_count,completed_at",
+        "additionalFields": {}
+      },
+      "id": "log-completion",
+      "name": "Log Run Completion",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [1120, 300]
+    }
+  ],
+  "connections": {
+    "Schedule Trigger (6am UTC)": {
+      "main": [
+        [
+          {
+            "node": "Fetch Active Users",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Active Users": {
+      "main": [
+        [
+          {
+            "node": "Process in Batches of 10",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Process in Batches of 10": {
+      "main": [
+        [
+          {
+            "node": "Trigger Daily Discovery Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Trigger Daily Discovery Agent": {
+      "main": [
+        [
+          {
+            "node": "Log Run Completion",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "errorWorkflow": "careeros-error-handler",
+    "saveDataSuccessExecution": "lastNode",
+    "saveDataErrorExecution": "all",
+    "executionTimeout": 3600
+  },
+  "tags": ["careeros", "jobs", "daily", "automation"]
+}

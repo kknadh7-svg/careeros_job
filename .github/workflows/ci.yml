@@ -1,0 +1,149 @@
+name: CI/CD
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: "20"
+  PYTHON_VERSION: "3.12"
+  PNPM_VERSION: "9"
+
+jobs:
+  # ─── TypeScript + Lint ─────────────────────────────────────────────────────
+  typecheck-lint:
+    name: TypeScript & Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v3
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "pnpm"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: TypeScript check
+        run: pnpm typecheck
+        working-directory: apps/web
+
+      - name: ESLint
+        run: pnpm lint
+        working-directory: apps/web
+
+  # ─── Unit + Integration Tests ─────────────────────────────────────────────
+  test-node:
+    name: Node.js Tests
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: careeros_test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+      redis:
+        image: redis:7-alpine
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 6379:6379
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/careeros_test
+      DIRECT_URL: postgresql://postgres:postgres@localhost:5432/careeros_test
+      UPSTASH_REDIS_REST_URL: redis://localhost:6379
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v3
+      - uses: actions/setup-node@v4
+        with: { node-version: "${{ env.NODE_VERSION }}", cache: "pnpm" }
+      - run: pnpm install --frozen-lockfile
+      - name: Run DB migrations
+        run: pnpm db:migrate:deploy
+        working-directory: packages/database
+      - name: Run tests
+        run: pnpm test
+        working-directory: apps/web
+
+  # ─── Python Tests ─────────────────────────────────────────────────────────
+  test-python:
+    name: Python Agent Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      - name: Install uv
+        run: pip install uv
+      - name: Install dependencies
+        run: uv sync --frozen
+        working-directory: apps/agents
+      - name: Run tests
+        run: uv run pytest tests/ -v --tb=short
+        working-directory: apps/agents
+
+  # ─── Deploy Staging (develop branch) ──────────────────────────────────────
+  deploy-staging:
+    name: Deploy to Staging
+    needs: [typecheck-lint, test-node, test-python]
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/develop' && github.event_name == 'push'
+    environment: staging
+    steps:
+      - uses: actions/checkout@v4
+      - name: Deploy web to Vercel (preview)
+        run: npx vercel deploy --token ${{ secrets.VERCEL_TOKEN }}
+      - name: Deploy agents to Fly.io (staging)
+        uses: superfly/flyctl-actions/setup-flyctl@master
+      - run: flyctl deploy --remote-only --app careeros-agents-staging
+        working-directory: apps/agents
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+
+  # ─── Deploy Production (main branch) ──────────────────────────────────────
+  deploy-production:
+    name: Deploy to Production
+    needs: [typecheck-lint, test-node, test-python]
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Deploy web to Vercel (production)
+        run: npx vercel deploy --prod --token ${{ secrets.VERCEL_TOKEN }}
+
+      - name: Deploy agents to Fly.io (production)
+        uses: superfly/flyctl-actions/setup-flyctl@master
+      - run: flyctl deploy --remote-only --app careeros-agents
+        working-directory: apps/agents
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+
+      - name: Run DB migrations (production)
+        run: pnpm db:migrate:deploy
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          DIRECT_URL: ${{ secrets.DIRECT_URL }}

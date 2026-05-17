@@ -1,0 +1,83 @@
+{
+  "name": "CareerOS — Weekly Job Digest",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 8 * * 1"
+            }
+          ]
+        }
+      },
+      "id": "schedule-weekly",
+      "name": "Every Monday 8am UTC",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "operation": "select",
+        "query": "SELECT u.id, u.email, u.first_name, COUNT(j.id) as new_jobs FROM users u LEFT JOIN saved_jobs sj ON u.id = sj.user_id LEFT JOIN jobs j ON j.created_at > NOW() - INTERVAL '7 days' WHERE u.deleted_at IS NULL AND u.onboarding_complete = true GROUP BY u.id, u.email, u.first_name ORDER BY new_jobs DESC",
+        "options": {}
+      },
+      "id": "fetch-users-digest",
+      "name": "Fetch Users for Digest",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.AGENTS_API_URL }}/v1/digest/generate",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            { "name": "userId", "value": "={{ $json.id }}" }
+          ]
+        }
+      },
+      "id": "generate-digest",
+      "name": "Generate AI Digest",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "fromEmail": "digest@careeros.app",
+        "toEmail": "={{ $('Fetch Users for Digest').item.json.email }}",
+        "subject": "Your weekly job digest — {{ $json.job_count }} new matches",
+        "emailType": "html",
+        "html": "={{ $json.email_html }}"
+      },
+      "id": "send-digest",
+      "name": "Send Weekly Digest Email",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [900, 300]
+    }
+  ],
+  "connections": {
+    "Every Monday 8am UTC": {
+      "main": [
+        [{ "node": "Fetch Users for Digest", "type": "main", "index": 0 }]
+      ]
+    },
+    "Fetch Users for Digest": {
+      "main": [
+        [{ "node": "Generate AI Digest", "type": "main", "index": 0 }]
+      ]
+    },
+    "Generate AI Digest": {
+      "main": [
+        [{ "node": "Send Weekly Digest Email", "type": "main", "index": 0 }]
+      ]
+    }
+  },
+  "tags": ["careeros", "email", "digest", "weekly"]
+}

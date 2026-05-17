@@ -1,0 +1,90 @@
+version: "3.9"
+
+services:
+  # ─── PostgreSQL (local dev only — use Supabase in prod) ───────────────────
+  postgres:
+    image: supabase/postgres:15.1.0.117
+    container_name: careeros_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: careeros
+      POSTGRES_USER: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ─── Redis (local dev only — use Upstash in prod) ─────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: careeros_redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    command: >
+      redis-server
+      --maxmemory 256mb
+      --maxmemory-policy allkeys-lru
+      --save 60 1
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ─── Python Agent Service ─────────────────────────────────────────────────
+  agents:
+    build:
+      context: ../apps/agents
+      dockerfile: Dockerfile
+      target: development
+    container_name: careeros_agents
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/careeros
+      REDIS_URL: redis://redis:6379
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
+      GROQ_API_KEY: ${GROQ_API_KEY}
+      LOG_LEVEL: DEBUG
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ../apps/agents:/app
+    command: ["uv", "run", "uvicorn", "careeros_agents.api:app", "--reload", "--host", "0.0.0.0", "--port", "8080"]
+
+  # ─── pgAdmin (local dev convenience) ─────────────────────────────────────
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: careeros_pgadmin
+    restart: unless-stopped
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@careeros.app
+      PGADMIN_DEFAULT_PASSWORD: admin
+    ports:
+      - "5050:80"
+    depends_on:
+      - postgres
+    profiles: ["tools"]
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  default:
+    name: careeros_network

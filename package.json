@@ -1,0 +1,24 @@
+{
+  "name": "careeros",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "pnpm --filter careeros-web dev",
+    "build": "pnpm --filter careeros-web build",
+    "typecheck": "pnpm --filter careeros-web typecheck",
+    "lint": "pnpm --filter careeros-web lint",
+    "test": "pnpm --filter careeros-web test",
+    "db:migrate:dev": "pnpm --filter careeros-database db:migrate:dev",
+    "db:migrate:deploy": "pnpm --filter careeros-database db:migrate:deploy",
+    "db:generate": "pnpm --filter careeros-database db:generate",
+    "db:studio": "pnpm --filter careeros-database db:studio",
+    "db:seed": "pnpm --filter careeros-database db:seed"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.2"
+  },
+  "engines": {
+    "node": ">=20.0.0",
+    "pnpm": ">=9.0.0"
+  }
+}

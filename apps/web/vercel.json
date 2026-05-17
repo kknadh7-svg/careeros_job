@@ -1,0 +1,50 @@
+{
+  "framework": "nextjs",
+  "buildCommand": "pnpm build",
+  "installCommand": "pnpm install --frozen-lockfile",
+  "outputDirectory": ".next",
+  "functions": {
+    "app/api/v1/resumes/*/tailor/route.ts": {
+      "maxDuration": 60
+    },
+    "app/api/v1/resumes/*/score/route.ts": {
+      "maxDuration": 30
+    },
+    "app/api/v1/cover-letters/route.ts": {
+      "maxDuration": 30
+    },
+    "app/api/v1/interviews/*/complete/route.ts": {
+      "maxDuration": 60
+    },
+    "app/api/v1/applications/automate/route.ts": {
+      "maxDuration": 30
+    },
+    "app/api/v1/cron/daily-job-agent/route.ts": {
+      "maxDuration": 300
+    }
+  },
+  "crons": [
+    {
+      "path": "/api/v1/cron/daily-job-agent",
+      "schedule": "0 6 * * *"
+    },
+    {
+      "path": "/api/v1/cron/refresh-jobs",
+      "schedule": "0 */6 * * *"
+    },
+    {
+      "path": "/api/v1/cron/token-reset",
+      "schedule": "0 0 1 * *"
+    }
+  ],
+  "headers": [
+    {
+      "source": "/api/(.*)",
+      "headers": [
+        { "key": "Access-Control-Allow-Origin", "value": "https://careeros.app" },
+        { "key": "Access-Control-Allow-Methods", "value": "GET, POST, PUT, DELETE, OPTIONS" },
+        { "key": "Access-Control-Allow-Headers", "value": "Content-Type, Authorization" }
+      ]
+    }
+  ]
+}
