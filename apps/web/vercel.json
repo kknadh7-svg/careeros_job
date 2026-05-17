@@ -27,14 +27,6 @@
     {
       "path": "/api/v1/cron/daily-job-agent",
       "schedule": "0 6 * * *"
-    },
-    {
-      "path": "/api/v1/cron/refresh-jobs",
-      "schedule": "0 */6 * * *"
-    },
-    {
-      "path": "/api/v1/cron/token-reset",
-      "schedule": "0 0 1 * *"
     }
   ],
   "headers": [
