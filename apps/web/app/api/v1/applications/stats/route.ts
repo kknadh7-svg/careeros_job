@@ -58,7 +58,7 @@ export const GET = withAuth(async (req, ctx) => {
         ]);
 
         const statusMap = Object.fromEntries(
-          totalByStatus.map((s) => [s.status, s._count.status])
+          (totalByStatus as { status: string; _count: { status: number } }[]).map((s) => [s.status, s._count.status])
         );
 
         const totalApplications = Object.values(statusMap).reduce((a, b) => a + b, 0);

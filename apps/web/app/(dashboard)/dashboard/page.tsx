@@ -55,7 +55,7 @@ async function getDashboardData(clerkId: string) {
   ]);
 
   const statusMap = Object.fromEntries(
-    applicationStats.map((s) => [s.status, s._count.status])
+    (applicationStats as { status: string; _count: { status: number } }[]).map((s) => [s.status, s._count.status])
   );
 
   return {
