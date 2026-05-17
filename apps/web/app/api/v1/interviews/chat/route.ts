@@ -78,7 +78,17 @@ function getSystemPrompt(interviewType: string): string {
   return SYSTEM_PROMPTS[interviewType] ?? SYSTEM_PROMPTS.BEHAVIORAL;
 }
 
-function buildFeedbackPrompt(maxQ: number, hasAnswers: boolean): string {
+function extractQAPairs(messages: { role: string; content: string }[]): { question: string; answer: string }[] {
+  const pairs: { question: string; answer: string }[] = [];
+  for (let i = 0; i < messages.length - 1; i++) {
+    if (messages[i].role === "assistant" && messages[i + 1].role === "user") {
+      pairs.push({ question: messages[i].content, answer: messages[i + 1].content });
+    }
+  }
+  return pairs;
+}
+
+function buildFeedbackPrompt(qaPairs: { question: string; answer: string }[], hasAnswers: boolean): string {
   if (!hasAnswers) {
     return `The candidate ended the session without answering any questions. Generate feedback as valid JSON only.
 
@@ -92,7 +102,16 @@ function buildFeedbackPrompt(maxQ: number, hasAnswers: boolean): string {
 }`;
   }
 
-  return `The interview is now complete (${maxQ} questions answered). Generate a comprehensive feedback report as valid JSON only. No markdown, no explanation — just the JSON object.
+  const pairsText = qaPairs.map((p, i) =>
+    `Q${i + 1}: ${p.question}\nA${i + 1}: ${p.answer}`
+  ).join("\n\n");
+
+  return `The interview session has ended. The candidate answered ${qaPairs.length} question(s). Generate a comprehensive feedback report as valid JSON only. No markdown, no explanation — just the JSON object.
+
+QUESTION-ANSWER PAIRS FROM THIS SESSION:
+${pairsText}
+
+IMPORTANT: You MUST include a questionReviews entry for EVERY one of the ${qaPairs.length} question(s) above. Do not skip any.
 
 {
   "overallScore": <integer 40–100 based on clarity, depth, specificity, use of examples>,
@@ -106,6 +125,7 @@ function buildFeedbackPrompt(maxQ: number, hasAnswers: boolean): string {
   "strengths": ["<specific strength 1>", "<specific strength 2>", "<specific strength 3>"],
   "improvements": ["<specific area 1 with advice>", "<specific area 2 with advice>", "<specific area 3 with advice>"],
   "questionReviews": [
+    <one entry per Q&A pair above — exactly ${qaPairs.length} entries total>
     {
       "question": "<exact interviewer question>",
       "userAnswer": "<brief summary of candidate's answer>",
@@ -115,7 +135,7 @@ function buildFeedbackPrompt(maxQ: number, hasAnswers: boolean): string {
   ]
 }
 
-Be honest. If the candidate gave vague answers, reflect that in the score (40–60 range). Strong, specific, example-driven answers should score 75–95.`;
+Be honest. Vague answers score 40–60. Strong, specific, example-driven answers score 75–95.`;
 }
 
 function buildHintPrompt(lastQuestion: string): string {
@@ -263,10 +283,10 @@ export const POST = withAuth(async (req, ctx) => {
           questionReviews: [],
         };
       } else {
+        const qaPairs = extractQAPairs(messages);
         const feedbackMessages: { role: "system" | "user" | "assistant"; content: string }[] = [
           { role: "system", content: getSystemPrompt(interviewType) },
-          ...messages.map((m) => ({ role: m.role as "user" | "assistant", content: m.content })),
-          { role: "user", content: buildFeedbackPrompt(maxQuestions, true) },
+          { role: "user", content: buildFeedbackPrompt(qaPairs, true) },
         ];
 
         const completion = await openai.chat.completions.create({
