@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { Button } from "@/components/ui/button";
 
 export function MarketingNav() {
   return (
@@ -9,20 +8,26 @@ export function MarketingNav() {
           CareerOS
         </Link>
         <div className="hidden items-center gap-6 text-sm md:flex">
-          <Link href="#features" className="text-muted-foreground hover:text-foreground">
+          <Link href="#features" className="text-muted-foreground hover:text-foreground transition-colors">
             Features
           </Link>
-          <Link href="#pricing" className="text-muted-foreground hover:text-foreground">
+          <Link href="#pricing" className="text-muted-foreground hover:text-foreground transition-colors">
             Pricing
           </Link>
         </div>
         <div className="flex items-center gap-3">
-          <Button variant="ghost" size="sm" asChild>
-            <Link href="/sign-in">Sign In</Link>
-          </Button>
-          <Button size="sm" asChild>
-            <Link href="/sign-up">Get Started</Link>
-          </Button>
+          <a
+            href="/sign-in"
+            className="inline-flex items-center justify-center rounded-md px-4 py-2 text-sm font-medium text-foreground hover:bg-accent transition-colors"
+          >
+            Sign In
+          </a>
+          <a
+            href="/sign-up"
+            className="inline-flex items-center justify-center rounded-md px-4 py-2 text-sm font-medium bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
+          >
+            Get Started
+          </a>
         </div>
       </div>
     </nav>

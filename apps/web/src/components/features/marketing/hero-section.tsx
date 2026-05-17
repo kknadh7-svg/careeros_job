@@ -90,27 +90,20 @@ export function HeroSection() {
           transition={{ duration: 0.5, delay: 0.3 }}
           className="flex flex-col sm:flex-row gap-4 justify-center mb-16"
         >
-          <Button
-            size="lg"
-            asChild
-            className="gap-2 text-base h-12 px-8 bg-brand-500 hover:bg-brand-600 shadow-[0_0_20px_rgba(99,102,241,0.4)]"
+          <a
+            href="/sign-up"
+            className="inline-flex items-center gap-2 text-base h-12 px-8 rounded-md bg-brand-500 hover:bg-brand-600 text-white font-medium shadow-[0_0_20px_rgba(99,102,241,0.4)] transition-colors"
           >
-            <Link href="/sign-up">
-              Start for Free
-              <ArrowRight className="w-4 h-4" />
-            </Link>
-          </Button>
-          <Button
-            size="lg"
-            variant="outline"
-            asChild
-            className="gap-2 text-base h-12 px-8 border-border/60"
+            Start for Free
+            <ArrowRight className="w-4 h-4" />
+          </a>
+          <a
+            href="#demo"
+            className="inline-flex items-center gap-2 text-base h-12 px-8 rounded-md border border-border/60 text-foreground hover:bg-accent font-medium transition-colors"
           >
-            <Link href="#demo">
-              <Brain className="w-4 h-4" />
-              See AI in Action
-            </Link>
-          </Button>
+            <Brain className="w-4 h-4" />
+            See AI in Action
+          </a>
         </motion.div>
 
         {/* Stats row */}
