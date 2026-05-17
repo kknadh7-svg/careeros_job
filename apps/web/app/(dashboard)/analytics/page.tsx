@@ -31,7 +31,7 @@ export default async function AnalyticsPage() {
     : [[], 0, 0];
 
   const statusMap = Object.fromEntries(
-    applicationStats.map((s) => [s.status, s._count.status])
+    (applicationStats as { status: string; _count: { status: number } }[]).map((s) => [s.status, s._count.status])
   );
   const total = Object.values(statusMap).reduce((a, b) => a + b, 0);
   const responded = (statusMap.SCREENING ?? 0) + (statusMap.INTERVIEW ?? 0) + (statusMap.TECHNICAL ?? 0) + (statusMap.OFFER ?? 0);
