@@ -25,18 +25,58 @@ const chatRequestSchema = z.object({
   hintsUsed: z.number().int().min(0).optional().default(0),
 });
 
-const SYSTEM_PROMPT = `You are an expert interviewer at a top-tier tech company. Conduct a realistic, professional job interview.
+const SYSTEM_PROMPTS: Record<string, string> = {
+  BEHAVIORAL: `You are an expert behavioral interviewer at a top-tier tech company. Conduct a realistic, professional behavioral interview.
 
 Rules:
 - Ask exactly ONE question per response. No preamble, no "Great answer!", no filler.
-- Build on what the candidate mentions — go deeper each round.
-- Phase 1 (Q1–2): Background and work experience overview.
-- Phase 2 (Q3–5): Deep-dive on specific skills and projects they mentioned.
-- Phase 3 (last questions): Challenging behavioral/situational scenarios.
+- Use STAR method (Situation, Task, Action, Result) focused questions throughout.
+- Phase 1 (Q1–2): Background, motivations, work style.
+- Phase 2 (Q3–5): Deep-dive on leadership, conflict resolution, teamwork, failure, ownership.
+- Phase 3 (last questions): Challenging scenarios — handling ambiguity, disagreeing with a manager, dealing with failure at scale.
 - Never repeat a question already asked.
-- Keep questions concise and direct.`;
+- Keep questions concise and direct.`,
 
-const FIRST_QUESTION = "Hi! I'm your AI interviewer today. Let's get started — could you tell me about yourself and walk me through your most recent work experience?";
+  TECHNICAL: `You are a senior software engineer conducting a technical interview at a top-tier tech company. Ask rigorous, real technical questions.
+
+Rules:
+- Ask exactly ONE technical question per response. No preamble, no "Great answer!", no filler.
+- Ask actual technical questions — NOT generic behavioral questions.
+- Phase 1 (Q1–2): Language/framework fundamentals (e.g. how does X work under the hood, explain Y concept, compare A vs B).
+- Phase 2 (Q3–5): Problem-solving and coding logic (e.g. how would you implement X, what's the time/space complexity of Y, debug this scenario, design a function to Z).
+- Phase 3 (last questions): Architecture and system thinking (e.g. how would you scale this API, design a rate limiter, what happens when a database has N+1 queries).
+- Mix question types: concept explanations, code reasoning, debugging scenarios, complexity analysis, API/DB design.
+- Never ask "tell me about yourself" or generic HR questions.
+- Never repeat a question already asked.
+- Keep questions concise and direct.`,
+
+  SYSTEM_DESIGN: `You are a principal engineer conducting a system design interview at a top-tier tech company.
+
+Rules:
+- Ask exactly ONE system design question or follow-up per response. No preamble, no "Great answer!", no filler.
+- Phase 1 (Q1–2): Warm-up design — design a small component or API (e.g. design a URL shortener, rate limiter, or cache layer).
+- Phase 2 (Q3–5): Full system design — design a large-scale system (e.g. Twitter feed, Uber dispatch, YouTube upload pipeline, distributed job queue).
+- Phase 3 (last questions): Deep-dives on trade-offs — consistency vs availability, SQL vs NoSQL, push vs pull, sharding strategies, failure modes.
+- Ask probing follow-ups: "How would you handle 10x traffic?", "What breaks first?", "How do you ensure consistency?".
+- Never repeat a question already asked.
+- Keep questions concise and direct.`,
+};
+
+const SYSTEM_PROMPT = SYSTEM_PROMPTS.BEHAVIORAL;
+
+const FIRST_QUESTIONS: Record<string, string> = {
+  BEHAVIORAL: "Hi! I'm your AI interviewer today. Let's get started — could you tell me about yourself and walk me through your most recent work experience?",
+  TECHNICAL: "Hi! I'm your AI technical interviewer today. Let's dive right in — can you explain the difference between a process and a thread, and when you would use one over the other?",
+  SYSTEM_DESIGN: "Hi! I'm your AI system design interviewer today. Let's start with a warm-up — how would you design a URL shortener like bit.ly? Walk me through your approach.",
+};
+
+function getFirstQuestion(interviewType: string): string {
+  return FIRST_QUESTIONS[interviewType] ?? FIRST_QUESTIONS.BEHAVIORAL;
+}
+
+function getSystemPrompt(interviewType: string): string {
+  return SYSTEM_PROMPTS[interviewType] ?? SYSTEM_PROMPTS.BEHAVIORAL;
+}
 
 function buildFeedbackPrompt(maxQ: number, hasAnswers: boolean): string {
   if (!hasAnswers) {
@@ -182,7 +222,7 @@ export const POST = withAuth(async (req, ctx) => {
 
     return ok({
       isComplete: false,
-      message: FIRST_QUESTION,
+      message: getFirstQuestion(interviewType),
       questionNumber: 1,
       plan,
       maxQuestions,
@@ -224,7 +264,7 @@ export const POST = withAuth(async (req, ctx) => {
         };
       } else {
         const feedbackMessages: { role: "system" | "user" | "assistant"; content: string }[] = [
-          { role: "system", content: SYSTEM_PROMPT },
+          { role: "system", content: getSystemPrompt(interviewType) },
           ...messages.map((m) => ({ role: m.role as "user" | "assistant", content: m.content })),
           { role: "user", content: buildFeedbackPrompt(maxQuestions, true) },
         ];
@@ -280,25 +320,25 @@ export const POST = withAuth(async (req, ctx) => {
 
   // ── SUBSEQUENT QUESTIONS ──────────────────────────────────────────────────
   try {
-    const interviewContext = interviewType === "TECHNICAL"
-      ? " Focus on technical depth, system design thinking, and problem-solving approach."
-      : interviewType === "SYSTEM_DESIGN"
-      ? " Focus on scalability, trade-offs, architecture decisions, and real-world constraints."
-      : " Focus on behavioral depth using STAR method situations.";
-
     const chatMessages: { role: "system" | "user" | "assistant"; content: string }[] = [
-      { role: "system", content: SYSTEM_PROMPT + interviewContext },
+      { role: "system", content: getSystemPrompt(interviewType) },
       ...messages.map((m) => ({ role: m.role as "user" | "assistant", content: m.content })),
     ];
+
+    const fallbacks: Record<string, string> = {
+      TECHNICAL: "What is the difference between an abstract class and an interface? When would you use each?",
+      SYSTEM_DESIGN: "How would you design a distributed rate limiter that works across multiple servers?",
+      BEHAVIORAL: "Tell me about a challenging situation you've faced at work and how you handled it.",
+    };
 
     const completion = await openai.chat.completions.create({
       model: MODEL.GPT4O,
       messages: chatMessages,
       temperature: 0.7,
-      max_tokens: 150,
+      max_tokens: 200,
     });
 
-    const message = completion.choices[0]?.message?.content?.trim() ?? "Tell me about a challenging situation you've faced at work.";
+    const message = completion.choices[0]?.message?.content?.trim() ?? (fallbacks[interviewType] ?? fallbacks.BEHAVIORAL);
 
     return ok({ isComplete: false, message, questionNumber, plan, maxQuestions });
   } catch (err) { return internalError(err); }
