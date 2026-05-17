@@ -532,7 +532,7 @@ function InterviewSession() {
       setIsLoading(true);
       try {
         const data = await callChatApi([], interviewType, 1);
-        if (!data.isComplete && !("isHint" in data)) {
+        if (!("isHint" in data) && !data.isComplete) {
           setMessages([{ role: "assistant", content: data.message }]);
           setQuestionNumber(1);
           if (data.plan) setPlan(data.plan as "FREE" | "PRO");

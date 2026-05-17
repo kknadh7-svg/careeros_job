@@ -33,6 +33,7 @@ export const POST = withAuth(async (req, ctx) => {
           applyUrl: applyUrl || `https://www.google.com/search?q=${encodeURIComponent(`${title} ${company}`)}`,
           isActive: true,
           postedAt: new Date(),
+          description: "",
         },
       });
 

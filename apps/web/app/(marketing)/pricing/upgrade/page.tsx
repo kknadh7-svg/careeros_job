@@ -74,7 +74,7 @@ export default function UpgradePage() {
             <motion.div
               className="absolute -top-1 -right-1 w-7 h-7 rounded-full bg-yellow-400/15 border border-yellow-400/30 flex items-center justify-center"
               animate={{ rotate: 360 }}
-              transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
+              transition={{ duration: 8, repeat: Number.POSITIVE_INFINITY, ease: "linear" }}
               style={{ transformOrigin: "calc(50% + 40px) calc(50% + 40px)" }}
             >
               <Sparkles className="w-3.5 h-3.5 text-yellow-400" />

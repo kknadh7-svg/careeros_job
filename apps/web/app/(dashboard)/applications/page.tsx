@@ -24,5 +24,6 @@ export default async function ApplicationsPage() {
     },
   });
 
-  return <ApplicationsBoard initialApplications={applications} />;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return <ApplicationsBoard initialApplications={applications as any} />;
 }
