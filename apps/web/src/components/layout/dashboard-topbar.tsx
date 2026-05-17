@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 
 export function DashboardTopBar() {
   return (
-    <header className="flex h-14 items-center justify-between border-b border-border px-6">
+    <header className="hidden md:flex h-14 items-center justify-between border-b border-border px-6">
       <div />
       <div className="flex items-center gap-3">
         <Button variant="ghost" size="icon">
