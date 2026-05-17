@@ -1,3 +1,5 @@
+import { auth } from "@clerk/nextjs/server";
+import { redirect } from "next/navigation";
 import { HeroSection } from "@/components/features/marketing/hero-section";
 import { FeaturesGrid } from "@/components/features/marketing/features-grid";
 import { SocialProof } from "@/components/features/marketing/social-proof";
@@ -7,7 +9,10 @@ import { CTASection } from "@/components/features/marketing/cta-section";
 import { MarketingNav } from "@/components/layout/marketing-nav";
 import { MarketingFooter } from "@/components/layout/marketing-footer";
 
-export default function LandingPage() {
+export default async function LandingPage() {
+  const { userId } = await auth();
+  if (userId) redirect("/dashboard");
+
   return (
     <div className="min-h-screen bg-background">
       <MarketingNav />
