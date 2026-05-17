@@ -61,7 +61,7 @@ export const GET = withAuth(async (req, ctx) => {
           (totalByStatus as { status: string; _count: { status: number } }[]).map((s) => [s.status, s._count.status])
         );
 
-        const totalApplications = Object.values(statusMap).reduce((a, b) => a + b, 0);
+        const totalApplications = Object.values(statusMap).reduce((a: number, b: number) => a + b, 0);
         const interviewRate = totalApplications > 0
           ? Math.round(
               (((statusMap.INTERVIEW ?? 0) +

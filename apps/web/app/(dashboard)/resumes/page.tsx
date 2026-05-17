@@ -39,7 +39,7 @@ async function getUserResumes(clerkId: string) {
     },
   });
 
-  const enhancementCount = resumes.filter((r) => r.isTailored).length;
+  const enhancementCount = resumes.filter((r: { isTailored: boolean }) => r.isTailored).length;
 
   return { user, resumes, enhancementCount };
 }
@@ -63,7 +63,7 @@ export default async function ResumesPage() {
       </div>
 
       {/* Upload zone */}
-      <ResumeUploadZone plan={user.plan} resumeCount={resumes.filter((r) => r.isBase).length} />
+      <ResumeUploadZone plan={user.plan} resumeCount={resumes.filter((r: { isBase: boolean }) => r.isBase).length} />
 
       {/* Resumes list */}
       <Suspense fallback={<Skeleton className="h-64 w-full rounded-xl" />}>

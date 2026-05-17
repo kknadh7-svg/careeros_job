@@ -61,17 +61,17 @@ async function getDashboardData(clerkId: string) {
   return {
     user,
     stats: {
-      totalApplications: Object.values(statusMap).reduce((a, b) => a + b, 0),
+      totalApplications: Object.values(statusMap).reduce((a: number, b: number) => a + b, 0),
       interviews: (statusMap.INTERVIEW ?? 0) + (statusMap.TECHNICAL ?? 0),
       offers: statusMap.OFFER ?? 0,
       responseRate:
-        Object.values(statusMap).reduce((a, b) => a + b, 0) > 0
+        Object.values(statusMap).reduce((a: number, b: number) => a + b, 0) > 0
           ? Math.round(
               (((statusMap.SCREENING ?? 0) +
                 (statusMap.INTERVIEW ?? 0) +
                 (statusMap.TECHNICAL ?? 0) +
                 (statusMap.OFFER ?? 0)) /
-                Object.values(statusMap).reduce((a, b) => a + b, 0)) *
+                Object.values(statusMap).reduce((a: number, b: number) => a + b, 0)) *
                 100
             )
           : 0,
