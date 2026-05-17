@@ -4,7 +4,7 @@ import type { NextRequest } from "next/server";
 
 const isPublicRoute = createRouteMatcher([
   "/",
-  "/pricing",
+  "/pricing(.*)",
   "/blog(.*)",
   "/sign-in(.*)",
   "/sign-up(.*)",
@@ -15,21 +15,28 @@ const isPublicRoute = createRouteMatcher([
 const isAdminRoute = createRouteMatcher(["/admin(.*)", "/api/v1/admin(.*)"]);
 
 export default clerkMiddleware(async (auth, req: NextRequest) => {
+  // Always let public routes through without auth checks
   if (isPublicRoute(req)) return NextResponse.next();
 
-  const { userId, sessionClaims } = await auth();
+  try {
+    const { userId, sessionClaims } = await auth();
 
-  if (!userId) {
-    const signInUrl = new URL("/sign-in", req.url);
-    signInUrl.searchParams.set("redirect_url", req.url);
-    return NextResponse.redirect(signInUrl);
-  }
-
-  if (isAdminRoute(req)) {
-    const role = (sessionClaims?.metadata as { role?: string })?.role;
-    if (role !== "ADMIN" && role !== "SUPER_ADMIN") {
-      return NextResponse.redirect(new URL("/dashboard", req.url));
+    if (!userId) {
+      const signInUrl = new URL("/sign-in", req.url);
+      signInUrl.searchParams.set("redirect_url", req.url);
+      return NextResponse.redirect(signInUrl);
     }
+
+    if (isAdminRoute(req)) {
+      const role = (sessionClaims?.metadata as { role?: string })?.role;
+      if (role !== "ADMIN" && role !== "SUPER_ADMIN") {
+        return NextResponse.redirect(new URL("/dashboard", req.url));
+      }
+    }
+  } catch {
+    // If Clerk auth fails on a protected route, redirect to sign-in
+    const signInUrl = new URL("/sign-in", req.url);
+    return NextResponse.redirect(signInUrl);
   }
 
   return NextResponse.next();
