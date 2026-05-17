@@ -5,6 +5,7 @@ import Link from "next/link";
 import { ArrowRight, Sparkles, Brain, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { SignUpButton, SignInButton } from "@clerk/nextjs";
 
 const STATS = [
   { value: "87%", label: "Higher Interview Rate" },
@@ -90,13 +91,12 @@ export function HeroSection() {
           transition={{ duration: 0.5, delay: 0.3 }}
           className="flex flex-col sm:flex-row gap-4 justify-center mb-16"
         >
-          <a
-            href="/sign-up"
-            className="inline-flex items-center gap-2 text-base h-12 px-8 rounded-md bg-brand-500 hover:bg-brand-600 text-white font-medium shadow-[0_0_20px_rgba(99,102,241,0.4)] transition-colors"
-          >
-            Start for Free
-            <ArrowRight className="w-4 h-4" />
-          </a>
+          <SignUpButton mode="modal">
+            <button className="inline-flex items-center gap-2 text-base h-12 px-8 rounded-md bg-brand-500 hover:bg-brand-600 text-white font-medium shadow-[0_0_20px_rgba(99,102,241,0.4)] transition-colors">
+              Start for Free
+              <ArrowRight className="w-4 h-4" />
+            </button>
+          </SignUpButton>
           <a
             href="#demo"
             className="inline-flex items-center gap-2 text-base h-12 px-8 rounded-md border border-border/60 text-foreground hover:bg-accent font-medium transition-colors"
