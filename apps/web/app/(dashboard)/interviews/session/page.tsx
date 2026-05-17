@@ -832,80 +832,91 @@ function InterviewSession() {
     <div className="flex flex-col h-[calc(100vh-4rem)] max-h-[calc(100vh-4rem)]">
 
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-border/50 shrink-0">
-        <div className="flex items-center gap-3">
-          <Button variant="ghost" size="icon" onClick={() => { stopSpeaking(); window.location.href = "/interviews"; }} className="h-8 w-8">
-            <ArrowLeft className="w-4 h-4" />
-          </Button>
-          <div>
-            <h1 className="text-sm font-semibold">AI Mock Interview</h1>
-            <p className="text-xs text-muted-foreground capitalize">
-              {interviewType.toLowerCase().replace("_", " ")} · {plan === "FREE" ? "Free" : "Pro"} plan
-            </p>
+      <div className="border-b border-border/50 shrink-0">
+        {/* Row 1: back + title + end session */}
+        <div className="flex items-center justify-between px-4 py-2.5">
+          <div className="flex items-center gap-2">
+            <Button variant="ghost" size="icon" onClick={() => { stopSpeaking(); window.location.href = "/interviews"; }} className="h-8 w-8">
+              <ArrowLeft className="w-4 h-4" />
+            </Button>
+            <div>
+              <h1 className="text-sm font-semibold">AI Mock Interview</h1>
+              <p className="text-xs text-muted-foreground capitalize">
+                {interviewType.toLowerCase().replace("_", " ")} · {plan === "FREE" ? "Free" : "Pro"} Plan
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            {!isComplete && (
+              <Badge variant="outline" className="text-xs hidden sm:inline-flex">
+                Q {displayedQ} / {maxQuestions}
+              </Badge>
+            )}
+            {!isComplete && messages.length > 0 && (
+              <Button variant="outline" size="sm" onClick={() => void handleEndSession()} disabled={isLoading} className="text-xs h-8">
+                End
+              </Button>
+            )}
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
-          {!isComplete && (
-            <Badge variant="outline" className="text-xs">
-              Question {displayedQ} / {maxQuestions}
-            </Badge>
-          )}
-
-          {/* Hint button */}
-          {!isComplete && (
-            <Button
-              variant="outline"
-              size="sm"
-              className={cn("text-xs gap-1.5", showHint ? "border-yellow-500/50 text-yellow-400 bg-yellow-500/5" : "")}
-              onClick={() => void handleHint()}
-              disabled={!canHint && !showHint}
-              title={canHint ? `${hintsRemaining} hint${hintsRemaining === 1 ? "" : "s"} remaining` : "No hints remaining"}
-            >
-              {isLoadingHint ? (
-                <span className="animate-pulse">…</span>
-              ) : (
-                <>
-                  <Lightbulb className="w-3.5 h-3.5" />
-                  Hint
-                  {hintsAllowed < 99 && (
-                    <span className={cn("text-[10px] rounded-full px-1", hintsRemaining > 0 ? "bg-brand-500/20 text-brand-400" : "bg-muted text-muted-foreground")}>
-                      {hintsRemaining}
-                    </span>
-                  )}
-                </>
-              )}
-            </Button>
-          )}
-
-          {!isComplete && (
-            <div className="flex items-center gap-1 bg-muted rounded-lg p-1">
-              <button onClick={() => { setMode("text"); stopSpeaking(); }}
-                className={cn("flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium transition-colors",
-                  mode === "text" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground")}>
-                <MessageSquare className="w-3 h-3" /> Text
+        {/* Row 2: mode toggle + hint + sound — always visible on mobile */}
+        {!isComplete && (
+          <div className="flex items-center justify-between px-4 pb-2.5 gap-2">
+            {/* Text / Voice toggle — prominent, left side */}
+            <div className="flex items-center gap-1 bg-muted rounded-lg p-1 flex-1 max-w-[160px]">
+              <button
+                onClick={() => { setMode("text"); stopSpeaking(); }}
+                className={cn("flex flex-1 items-center justify-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors",
+                  mode === "text" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground")}
+              >
+                <MessageSquare className="w-3.5 h-3.5" /> Text
               </button>
-              <button onClick={() => setMode("voice")}
-                className={cn("flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium transition-colors",
-                  mode === "voice" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground")}>
-                <Mic className="w-3 h-3" /> Voice
+              <button
+                onClick={() => setMode("voice")}
+                className={cn("flex flex-1 items-center justify-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors",
+                  mode === "voice" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground")}
+              >
+                <Mic className="w-3.5 h-3.5" /> Voice
               </button>
             </div>
-          )}
 
-          {!isComplete && (
-            <Button variant="ghost" size="icon" className="h-8 w-8"
-              onClick={() => { setIsSpeaking((v) => { if (v) stopSpeaking(); return !v; }); }}>
-              {isSpeaking ? <Volume2 className="w-4 h-4 text-brand-400" /> : <VolumeX className="w-4 h-4 text-muted-foreground" />}
-            </Button>
-          )}
+            <div className="flex items-center gap-2">
+              {/* Question counter on mobile */}
+              <span className="text-xs text-muted-foreground sm:hidden">
+                Q {displayedQ}/{maxQuestions}
+              </span>
 
-          {!isComplete && messages.length > 0 && (
-            <Button variant="outline" size="sm" onClick={() => void handleEndSession()} disabled={isLoading} className="text-xs">
-              End Session
-            </Button>
-          )}
-        </div>
+              {/* Hint button */}
+              <Button
+                variant="outline"
+                size="sm"
+                className={cn("text-xs gap-1.5 h-8", showHint ? "border-yellow-500/50 text-yellow-400 bg-yellow-500/5" : "")}
+                onClick={() => void handleHint()}
+                disabled={!canHint && !showHint}
+                title={canHint ? `${hintsRemaining} hint${hintsRemaining === 1 ? "" : "s"} remaining` : "No hints remaining"}
+              >
+                {isLoadingHint ? <span className="animate-pulse">…</span> : (
+                  <>
+                    <Lightbulb className="w-3.5 h-3.5" />
+                    Hint
+                    {hintsAllowed < 99 && (
+                      <span className={cn("text-[10px] rounded-full px-1", hintsRemaining > 0 ? "bg-brand-500/20 text-brand-400" : "bg-muted text-muted-foreground")}>
+                        {hintsRemaining}
+                      </span>
+                    )}
+                  </>
+                )}
+              </Button>
+
+              {/* Sound toggle */}
+              <Button variant="ghost" size="icon" className="h-8 w-8"
+                onClick={() => { setIsSpeaking((v) => { if (v) stopSpeaking(); return !v; }); }}>
+                {isSpeaking ? <Volume2 className="w-4 h-4 text-brand-400" /> : <VolumeX className="w-4 h-4 text-muted-foreground" />}
+              </Button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Progress bar */}
