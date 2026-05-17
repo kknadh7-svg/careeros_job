@@ -58,7 +58,7 @@ async function getAdminStats() {
     totalUsers,
     newUsersThisMonth,
     planBreakdown: Object.fromEntries(
-      planBreakdown.map((p) => [p.plan, p._count.plan])
+      (planBreakdown as { plan: string; _count: { plan: number } }[]).map((p) => [p.plan, p._count.plan])
     ),
     totalApplications,
     totalResumes,
